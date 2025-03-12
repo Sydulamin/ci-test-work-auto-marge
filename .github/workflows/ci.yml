@@ -1,0 +1,75 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - 'feature/*'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: pip install flake8
+
+      - name: Run Linter
+        run: flake8 .
+
+  code_quality:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Dependencies
+        run: pip install radon
+
+      - name: Check Code Quality
+        run: radon cc -nc .
+
+  test:
+    runs-on: ubuntu-latest
+    needs: code_quality
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: pip install pytest
+
+      - name: Run Tests
+        run: pytest
+
+  merge:
+    runs-on: ubuntu-latest
+    needs: test
+    if: success()
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions@github.com"
+
+      - name: Merge Feature Branch into Dev
+        run: |
+          git fetch origin
+          git checkout dev
+          git merge --no-ff $(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+          git push origin dev
