@@ -36,17 +36,22 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+            token: ${{ secrets.ACCESS_TOKEN }}  # Use GITHUB_TOKEN for authentication
 
       - name: Configure Git
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions@github.com"
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions@github.com"
 
       - name: Merge Feature Branch into Dev
         run: |
-          git fetch origin
-          git checkout dev
-          git merge --no-ff --allow-unrelated-histories --strategy=recursive --strategy-option=ours $(echo "${{ github.ref }}" | sed 's/refs\/heads\///') || true
-          git add .  # Add all changes (including conflict resolutions) to the staging area
-          git commit -m "Merge feature branch into dev" || echo "No changes to commit"
-          git push origin dev
+            git fetch origin
+            git checkout dev
+            git merge --no-ff --allow-unrelated-histories --strategy=recursive --strategy-option=ours $(echo "${{ github.ref }}" | sed 's/refs\/heads\///') || true
+            git add .  # Add all changes (including conflict resolutions) to the staging area
+            git commit -m "Merge feature branch into dev" || echo "No changes to commit"
+            git push origin dev
+            # Ensure that the push uses GITHUB_TOKEN for authentication
+            git push https://x-access-token:${{ secrets.ACCESS_TOKEN }}@github.com/${{ github.repository }} dev
+
