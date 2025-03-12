@@ -71,5 +71,5 @@ jobs:
         run: |
           git fetch origin
           git checkout dev
-          git merge --no-ff $(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+          git merge --no-ff --allow-unrelated-histories $(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
           git push origin dev
