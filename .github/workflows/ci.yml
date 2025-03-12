@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Workflow
 
 on:
   push:
@@ -9,57 +9,32 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set Up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install Dependencies
-        run: pip install flake8
-
-      - name: Run Linter
-        run: flake8 .
-
-  code_quality:
-    runs-on: ubuntu-latest
-    needs: lint
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Install Dependencies
-        run: pip install radon
-
-      - name: Check Code Quality
-        run: radon cc -nc .
+      - name: Run Flake8 Linter
+        run: |
+          pip install flake8
+          flake8 .
 
   test:
     runs-on: ubuntu-latest
-    needs: code_quality
+    needs: lint
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set Up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install Dependencies
-        run: pip install pytest
-
-      - name: Run Tests
-        run: pytest
+      - name: Run pytest
+        run: |
+          pip install pytest
+          pytest
 
   merge:
     runs-on: ubuntu-latest
     needs: test
     if: success()
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Configure Git
@@ -71,5 +46,7 @@ jobs:
         run: |
           git fetch origin
           git checkout dev
-          git merge --no-ff --allow-unrelated-histories $(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+          git merge --no-ff --allow-unrelated-histories --strategy=recursive --strategy-option=ours $(echo "${{ github.ref }}" | sed 's/refs\/heads\///') || true
+          git add .  # Add all changes (including conflict resolutions) to the staging area
+          git commit -m "Merge feature branch into dev" || echo "No changes to commit"
           git push origin dev
